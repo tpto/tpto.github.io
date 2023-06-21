@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/lang64.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/lang32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/lang16.png">
+  <link rel="mask-icon" href="/images/lang.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":true,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="场景门户应用通过嵌套 iframe 访问其他应用，不同页面间需确立通信机制。例如任务处理完成后页签关闭，同时刷新任务列表。 思路通过 window.postMessage（H5 跨文档通信 API）实现跨 iframe 通信">
+<meta property="og:type" content="article">
+<meta property="og:title" content="跨iframe通信">
+<meta property="og:url" content="http://example.com/2019/09/15/%E5%89%8D%E7%AB%AF-2019-2019-09-15-%E8%B7%A8iframe%E9%80%9A%E4%BF%A1/index.html">
+<meta property="og:site_name" content="锋芒">
+<meta property="og:description" content="场景门户应用通过嵌套 iframe 访问其他应用，不同页面间需确立通信机制。例如任务处理完成后页签关闭，同时刷新任务列表。 思路通过 window.postMessage（H5 跨文档通信 API）实现跨 iframe 通信">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-09-14T16:00:00.000Z">
+<meta property="article:modified_time" content="2020-09-28T14:43:19.867Z">
+<meta property="article:author" content="云歌">
+<meta property="article:tag" content="javascript">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2019/09/15/%E5%89%8D%E7%AB%AF-2019-2019-09-15-%E8%B7%A8iframe%E9%80%9A%E4%BF%A1/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>跨iframe通信 | 锋芒</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">锋芒</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">悟已往之不谏，知来者之可追。实迷途其未远，觉今是而昨非。</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/09/15/%E5%89%8D%E7%AB%AF-2019-2019-09-15-%E8%B7%A8iframe%E9%80%9A%E4%BF%A1/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="云歌">
+      <meta itemprop="description" content="前事不忘，后事之师">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="锋芒">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          跨iframe通信
+        </h1>
+
+        <div class="post-meta">
+          
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-15 00:00:00" itemprop="dateCreated datePublished" datetime="2019-09-15T00:00:00+08:00">2019-09-15</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-09-28 22:43:19" itemprop="dateModified" datetime="2020-09-28T22:43:19+08:00">2020-09-28</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%89%8D%E7%AB%AF/" itemprop="url" rel="index"><span itemprop="name">前端</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="场景"><a href="#场景" class="headerlink" title="场景"></a>场景</h2><p>门户应用通过嵌套 iframe 访问其他应用，不同页面间需确立通信机制。例如任务处理完成后页签关闭，同时刷新任务列表。</p>
+<h2 id="思路"><a href="#思路" class="headerlink" title="思路"></a>思路</h2><p>通过 window.postMessage（H5 跨文档通信 API）实现跨 iframe 通信</p>
+<a id="more"></a>
+
+<h2 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h2><p><strong>1.各页面在加载时 向门户声明“当前页面信息”，如</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  id: <span class="string">&#x27;taskcenter&#x27;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>id – 页面的唯一标示</p>
+<p><strong>2.应用页面向门户告知，执行的方法</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  to: <span class="string">&#x27;ofs&#x27;</span></span><br><span class="line">  message: <span class="string">&#x27;refreshData&#x27;</span></span><br><span class="line">  data: <span class="string">&#x27;&#x27;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>to: - 目标页面为模糊匹配</p>
+<p>message –与业务模块约定的方法名</p>
+<p>data – 传递的数据</p>
+<p><strong>3.门户分发到该页面的目标页面</strong></p>
+<p>只通知，不监听方法执行成功或失败</p>
+<h2 id="代码"><a href="#代码" class="headerlink" title="代码"></a>代码</h2><h3 id="新门户通信-JS-SDK"><a href="#新门户通信-JS-SDK" class="headerlink" title="新门户通信 JS-SDK"></a>新门户通信 JS-SDK</h3><p><strong>index.js</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * @Description: 新门户API</span></span><br><span class="line"><span class="comment"> * @Author: guof</span></span><br><span class="line"><span class="comment"> * @Date: 2019-7-1</span></span><br><span class="line"><span class="comment"> * @Remark: .vue通过vue原型链调用（组件中使用） .js文件直接import新门户JS-SDK(路由中使用)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> LOPTL <span class="keyword">from</span> <span class="string">&#x27;./loptl-jssdk&#x27;</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 是否在新门户页签中显示</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> isInNewPortalTab = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> LOPTL.isInNewPortalTab()</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 打开新页面</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Object&#125;</span> </span>tab 页签属性</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> openNewPage = <span class="function"><span class="params">tab</span> =&gt;</span> &#123;</span><br><span class="line">  LOPTL.openNewPage(tab)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 关闭当前页面</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> closeCurrPage = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">  LOPTL.closeCurrPage()</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">  install(Vue, options) &#123;</span><br><span class="line">    Vue.prototype.$LOPTL = LOPTL</span><br><span class="line">    Vue.prototype.$isInNewPortalTab = isInNewPortalTab</span><br><span class="line">    Vue.prototype.$openNewPage = openNewPage</span><br><span class="line">    Vue.prototype.$closeCurrPage = closeCurrPage</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>loptl-jssdk.js</strong></p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment"> * @Description: 新门户通信JS-SDK</span></span><br><span class="line"><span class="comment"> * @Author: guof</span></span><br><span class="line"><span class="comment"> * @Date: 2019-8-21</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 是否在新门户页签中显示</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> isInNewPortalTab = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">return</span> self !== top</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 监听(仅初始化时调用一次)</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> listen = <span class="function"><span class="params">callback</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="built_in">window</span>.addEventListener(<span class="string">&#x27;message&#x27;</span>, <span class="function"><span class="keyword">function</span>(<span class="params">event</span>) </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">typeof</span> callback === <span class="string">&#x27;function&#x27;</span>) &#123;</span><br><span class="line">      <span class="comment">// 消息</span></span><br><span class="line">      <span class="keyword">let</span> data = event.data || &#123;&#125;</span><br><span class="line">      <span class="comment">// source – 来源窗口的id | message – 操作 | data – 数据</span></span><br><span class="line">      callback(data.message, data.data)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 初始化当前页面标识</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> init = <span class="function"><span class="params">id</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(&#123; <span class="attr">id</span>: id &#125;, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 打开新页面</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Object&#125;</span> </span>tab 页签属性</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> openNewPage = <span class="function"><span class="params">tab</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="comment">// 无效页签</span></span><br><span class="line">  <span class="keyword">if</span> (<span class="built_in">Object</span>.prototype.toString.call(tab) !== <span class="string">&#x27;[object Object]&#x27;</span>) &#123;</span><br><span class="line">    <span class="built_in">console</span>.error(<span class="string">&#x27;无效的新页面参数.&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 缺少参数</span></span><br><span class="line">  <span class="keyword">if</span> (!tab.title || !tab.url) &#123;</span><br><span class="line">    <span class="built_in">console</span>.error(<span class="string">&#x27;新页面缺少参数.&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 在新门户页签内显示</span></span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(tab, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 单独窗口显示</span></span><br><span class="line">  <span class="keyword">if</span> (!isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.open(tab.url, tab.name)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 关闭当前页面</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> closeCurrPage = <span class="function">() =&gt;</span> &#123;</span><br><span class="line">  <span class="comment">// 在新门户页签内显示</span></span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(<span class="string">&#x27;close&#x27;</span>, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 单独窗口显示</span></span><br><span class="line">  <span class="keyword">if</span> (!isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.close()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 刷新目标窗口</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> refresh = <span class="function">(<span class="params">to, data</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">let</span> msg = &#123;</span><br><span class="line">    to: to,</span><br><span class="line">    message: <span class="string">&#x27;refresh&#x27;</span>,</span><br><span class="line">    data: data</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msg, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 关闭当前页面并且刷新目标窗口</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Array&#125;</span> </span>to 目标窗口集合</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Object&#125;</span> </span>data 数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> refreshAndCloseTab = <span class="function">(<span class="params">to, data</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">let</span> msg = [</span><br><span class="line">    &#123;</span><br><span class="line">      to: to,</span><br><span class="line">      message: <span class="string">&#x27;refresh&#x27;</span>,</span><br><span class="line">      data: data</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      to: [<span class="string">&#x27;portal&#x27;</span>],</span><br><span class="line">      message: <span class="string">&#x27;close&#x27;</span>,</span><br><span class="line">      data: &#123;&#125;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msg, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="built_in">window</span>.close()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 门户提示消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> showMessage = <span class="function"><span class="params">param</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (!param) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">let</span> msg = &#123;</span><br><span class="line">    to: [<span class="string">&#x27;portal&#x27;</span>],</span><br><span class="line">    message: <span class="string">&#x27;showMessage&#x27;</span>,</span><br><span class="line">    data: param</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msg, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    alert(param.message)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 门户便签消息</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> showNotive = <span class="function"><span class="params">param</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (!param) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">let</span> msg = &#123;</span><br><span class="line">    to: [<span class="string">&#x27;portal&#x27;</span>],</span><br><span class="line">    message: <span class="string">&#x27;showNotive&#x27;</span>,</span><br><span class="line">    data: param</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msg, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">    alert(param.message)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义通信事件</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Array&#125;</span> </span>to 目标窗口集合</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;String&#125;</span> </span>message 操作方法</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Object&#125;</span> </span>data 数据</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> send = <span class="function">(<span class="params">to, message, data</span>) =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">let</span> msg = &#123;</span><br><span class="line">    to: to,</span><br><span class="line">    message: message,</span><br><span class="line">    data: data</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msg, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 多个消息通信事件</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@param <span class="type">&#123;Array&#125;</span> </span>msgList 消息集合</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">let</span> sendMore = <span class="function"><span class="params">msgList</span> =&gt;</span> &#123;</span><br><span class="line">  <span class="keyword">if</span> (isInNewPortalTab()) &#123;</span><br><span class="line">    <span class="built_in">window</span>.parent.postMessage(msgList, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">export</span> <span class="keyword">default</span> &#123;</span><br><span class="line">  isInNewPortalTab,</span><br><span class="line">  init,</span><br><span class="line">  listen,</span><br><span class="line">  openNewPage,</span><br><span class="line">  closeCurrPage,</span><br><span class="line">  showMessage,</span><br><span class="line">  showNotive,</span><br><span class="line">  send,</span><br><span class="line">  sendMore,</span><br><span class="line">  refreshAndCloseTab,</span><br><span class="line">  refresh</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="新门户消息分发"><a href="#新门户消息分发" class="headerlink" title="新门户消息分发"></a>新门户消息分发</h3><p>存在代码冗余 为兼容之前不完整的通信方案</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br></pre></td><td class="code"><pre><span class="line">listen () &#123;</span><br><span class="line">  <span class="built_in">window</span>.addEventListener(<span class="string">&#x27;message&#x27;</span>, <span class="function">(<span class="params">event</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="comment">// 无效的事件包</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.isInvalidEvent(event)) &#123;</span><br><span class="line">      <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">let</span> actions = &#123;</span><br><span class="line">      <span class="string">&#x27;1&#x27;</span>: <span class="built_in">this</span>.closeCurrTab,</span><br><span class="line">      <span class="string">&#x27;2&#x27;</span>: <span class="built_in">this</span>.openNewTab,</span><br><span class="line">      <span class="string">&#x27;3&#x27;</span>: <span class="built_in">this</span>.initTabTarget,</span><br><span class="line">      <span class="string">&#x27;4&#x27;</span>: <span class="built_in">this</span>.sendEventMsg,</span><br><span class="line">      <span class="string">&#x27;5&#x27;</span>: <span class="built_in">this</span>.sendEventPackage</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">// 判断操作类型</span></span><br><span class="line">    <span class="keyword">let</span> op = <span class="built_in">this</span>.getPageOperation(event)</span><br><span class="line">    <span class="comment">// 执行操作</span></span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">typeof</span> (actions[op]) === <span class="string">&#x27;function&#x27;</span>) &#123;</span><br><span class="line">      actions[op](event)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;,</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 获取页签操作</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">getPageOperation (event) &#123;</span><br><span class="line">  <span class="keyword">let</span> data = event.data || &#123;&#125;</span><br><span class="line">  <span class="comment">// 关闭页签</span></span><br><span class="line">  <span class="keyword">if</span> (data === <span class="string">&#x27;close&#x27;</span> || data.op === <span class="string">&#x27;close&#x27;</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;1&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 打开新页签</span></span><br><span class="line">  <span class="keyword">if</span> (data.url) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;2&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 应用注册</span></span><br><span class="line">  <span class="keyword">if</span> (data.id) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;3&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 自定义事件</span></span><br><span class="line">  <span class="keyword">if</span> (data.message) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;4&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 事件组合</span></span><br><span class="line">  <span class="keyword">if</span> (<span class="built_in">Array</span>.isArray(data)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="string">&#x27;5&#x27;</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;,</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义事件通信</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">sendEventMsg (event) &#123;</span><br><span class="line">  <span class="keyword">let</span> eventData = event.data || &#123;&#125;</span><br><span class="line">  <span class="keyword">let</span> targetNameList = eventData.to</span><br><span class="line">  <span class="comment">// 数组</span></span><br><span class="line">  <span class="keyword">if</span> (!<span class="built_in">Array</span>.isArray(targetNameList)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">false</span></span><br><span class="line">  &#125;</span><br><span class="line">  targetNameList.forEach(<span class="function"><span class="params">targetName</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="built_in">this</span>.sendMsgToWindow(targetName, eventData, event)</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;,</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义事件包</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">sendEventPackage (event) &#123;</span><br><span class="line">  <span class="keyword">let</span> eventData = event.data || &#123;&#125;</span><br><span class="line">  <span class="comment">// 多事件遍历</span></span><br><span class="line">  eventData.forEach(<span class="function"><span class="params">item</span> =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> targetNameList = item.to</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">Array</span>.isArray(targetNameList)) &#123;</span><br><span class="line">      <span class="comment">// 发送窗口遍历</span></span><br><span class="line">      targetNameList.forEach(<span class="function"><span class="params">targetName</span> =&gt;</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.sendMsgToWindow(targetName, item, event)</span><br><span class="line">      &#125;)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;)</span><br><span class="line">&#125;,</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 向窗口发送事件</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line">sendMsgToWindow (targetName, eventData, event) &#123;</span><br><span class="line">  <span class="comment">// 门户内页签消息</span></span><br><span class="line">  <span class="keyword">if</span> (targetName !== <span class="string">&#x27;portal&#x27;</span>) &#123;</span><br><span class="line">  <span class="comment">// ...寻找iframe代码省略 可根据id</span></span><br><span class="line">     iframe.contentWindow.postMessage(&#123; <span class="attr">message</span>: eventData.message, <span class="attr">data</span>: eventData.data &#125;, <span class="string">&#x27;*&#x27;</span>)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="如何判断message来源哪个iframe"><a href="#如何判断message来源哪个iframe" class="headerlink" title="如何判断message来源哪个iframe?"></a>如何判断message来源哪个iframe?</h3><p>event.source与iframe.contentWindow比较</p>
+<figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">window</span>.addEventListener(<span class="string">&quot;message&quot;</span>, <span class="function">(<span class="params">event</span>) =&gt;</span> &#123;</span><br><span class="line">    <span class="keyword">if</span>(event.source === iframe.contentWindow)&#123;</span><br><span class="line">        <span class="comment">//iframe.contentWindow为源窗口</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;)</span><br></pre></td></tr></table></figure>
+
+<p>::: warning<br>考虑安全性 可判断event.origin是否为可信域名<br>:::</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/javascript/" rel="tag"># javascript</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/10/%E5%89%8D%E7%AB%AF-2019-2019-09-10-Vue%E9%A1%B9%E7%9B%AE%E8%87%AA%E5%AE%9A%E4%B9%89%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6/" rel="prev" title="Vue项目自定义配置文件">
+      <i class="fa fa-chevron-left"></i> Vue项目自定义配置文件
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/15/%E5%89%8D%E7%AB%AF-2019-2019-12-15-%E5%A4%9A%E5%89%8D%E7%AB%AF%E9%A1%B9%E7%9B%AE%E6%89%93%E5%8C%85/" rel="next" title="前端项目批量打包">
+      前端项目批量打包 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9C%BA%E6%99%AF"><span class="nav-number">1.</span> <span class="nav-text">场景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%9D%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">思路</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81"><span class="nav-number">4.</span> <span class="nav-text">代码</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B0%E9%97%A8%E6%88%B7%E9%80%9A%E4%BF%A1-JS-SDK"><span class="nav-number">4.1.</span> <span class="nav-text">新门户通信 JS-SDK</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%96%B0%E9%97%A8%E6%88%B7%E6%B6%88%E6%81%AF%E5%88%86%E5%8F%91"><span class="nav-number">4.2.</span> <span class="nav-text">新门户消息分发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E5%88%A4%E6%96%ADmessage%E6%9D%A5%E6%BA%90%E5%93%AA%E4%B8%AAiframe"><span class="nav-number">4.3.</span> <span class="nav-text">如何判断message来源哪个iframe?</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">云歌</p>
+  <div class="site-description" itemprop="description">前事不忘，后事之师</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">12</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="mailto:tptotop@163.com" title="联系我 → mailto:tptotop@163.com" rel="noopener" target="_blank"><i class="fa fa-comment fa-fw"></i>联系我</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://www.yuque.com/tpto" title="语雀 → https:&#x2F;&#x2F;www.yuque.com&#x2F;tpto" rel="noopener" target="_blank"><i class="fa fa-cloud fa-fw"></i>语雀</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">云歌</span>
+</div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='87,87,239' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.js"></script>
+  <script src="//cdn.jsdelivr.net/gh/fancyapps/fancybox@3/dist/jquery.fancybox.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+  
+    <canvas class="fireworks" style="position: fixed;left: 0;top: 0;z-index: 1; pointer-events: none;" ></canvas>
+    <script src="/js/cursor/anime.min.js"></script>
+    <script src="/js/cursor/explosion.min.js"></script>
+    <script src="/js/cursor/boomText.js"></script>
+  
+
+</body>
+</html>
